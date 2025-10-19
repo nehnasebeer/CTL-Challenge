@@ -1,4 +1,4 @@
-// app.js (student + admin, with code gate, logout, roster table, search)
+// app.js (student + admin; lowercase student keys; displayName; strict code gate)
 
 // Firebase CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
@@ -28,7 +28,7 @@ const norm = (s) => (s || "").trim();
 const toLower = (s) => (s || "").toLowerCase();
 
 // ==================================================
-// STUDENT PAGE (read-only)
+// STUDENT PAGE (read-only, database-backed)
 // ==================================================
 window.loadStudent = async function () {
   const inputEl = document.getElementById("studentName");
@@ -37,6 +37,8 @@ window.loadStudent = async function () {
 
   const raw = norm(inputEl.value);
   if (!raw) return alert("Please enter your full name.");
+
+  const key = toLower(raw); // canonical key
 
   listEl.innerHTML = "<p>Loading…</p>";
 
@@ -51,22 +53,21 @@ window.loadStudent = async function () {
     }
     const scriptures = scripturesSnap.val();
 
-    // Try exact then lowercase student node
-    const exactPath = `students/${raw}/completed`;
-    const lowerPath = `students/${toLower(raw)}/completed`;
-
-    let completed = {};
-    let completedSnap = await get(child(dbRef, exactPath));
-    if (!completedSnap.exists()) completedSnap = await get(child(dbRef, lowerPath));
-    if (completedSnap.exists()) completed = completedSnap.val();
+    // Completed map for this student (lowercase key)
+    const completedSnap = await get(child(dbRef, `students/${key}/completed`));
+    const completed = completedSnap.exists() ? completedSnap.val() : {};
 
     const refs = Object.keys(scriptures).sort((a, b) =>
       a.localeCompare(b, undefined, { numeric: true })
     );
     const done = refs.reduce((n, r) => n + (completed[r] ? 1 : 0), 0);
 
+    let displayName = raw;
+    const metaSnap = await get(child(dbRef, `students/${key}/displayName`));
+    if (metaSnap.exists()) displayName = metaSnap.val();
+
     let html = "";
-    html += `<h3>${raw}'s Scriptures</h3>`;
+    html += `<h3>${displayName}'s Scriptures</h3>`;
     html += `<p>${done} / ${refs.length} completed</p>`;
 
     for (const refName of refs) {
@@ -94,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==================================================
-// ADMIN PAGE (code gate, logout, roster, detail, save, search)
+// ADMIN PAGE (strict login every time; roster; detail; save; search)
 // ==================================================
 function showAdminPanel(show) {
   const login = document.getElementById("adminLoginSection");
@@ -107,8 +108,7 @@ function showAdminPanel(show) {
 window.adminLogin = function () {
   const code = norm(document.getElementById("adminCode")?.value);
   if (code === ADMIN_CODE) {
-    // require code EACH TIME: do not persist across reloads
-    sessionStorage.removeItem("ctl_admin"); // ensure old flags are cleared
+    // require code EACH TIME: no session persistence
     showAdminPanel(true);
     buildRoster();
   } else {
@@ -118,32 +118,31 @@ window.adminLogin = function () {
 
 window.adminLogout = function () {
   showAdminPanel(false);
-  // also clear any verse panel state
   const versesEl = document.getElementById("adminVerses");
   if (versesEl) versesEl.innerHTML = `<p class="muted">Logged out.</p>`;
   const status = document.getElementById("adminStatus");
   if (status) status.textContent = "";
-  // clear inputs
   const inp = document.getElementById("adminCode"); if (inp) inp.value = "";
 };
 
-// force code on every load (no auto-open)
+// Always start at login
 document.addEventListener("DOMContentLoaded", () => {
-  const onAdminPage = !!document.getElementById("adminLoginSection");
-  if (onAdminPage) showAdminPanel(false); // always start at login
+  if (document.getElementById("adminLoginSection")) showAdminPanel(false);
 });
 
-// Create student
+// Create student (persistent in DB with lowercase key + displayName)
 window.createStudent = async function () {
   const input = document.getElementById("newStudentName");
   const name = norm(input?.value);
   if (!name) return alert("Enter a full name first.");
-  const key = name; // exact spelling
+
+  const key = toLower(name); // canonical
+  const studentNode = { displayName: name, completed: {} };
 
   try {
-    await set(ref(db, `students/${key}`), { completed: {} });
+    await set(ref(db, `students/${key}`), studentNode);
     const status = document.getElementById("adminStatus");
-    if (status) status.textContent = `Created student: ${key}`;
+    if (status) status.textContent = `Created student: ${name}`;
     input.value = "";
     await buildRoster(); // refresh list
   } catch (e) {
@@ -152,7 +151,7 @@ window.createStudent = async function () {
   }
 };
 
-// Build roster table
+// Build roster table from DB (persistent, cross-device)
 async function getScripturesCount() {
   const snap = await get(child(ref(db), "scriptures"));
   if (!snap.exists()) return 0;
@@ -181,34 +180,40 @@ window.buildRoster = async function () {
       return;
     }
 
-    const students = studentsSnap.val(); // { name: { completed: {...} } }
-    const names = Object.keys(students).sort((a,b)=> a.localeCompare(b));
+    const students = studentsSnap.val(); // keys are lowercase
+    const keys = Object.keys(students).sort((a,b)=> a.localeCompare(b));
 
     let html = "";
-    for (const name of names) {
-      const completedMap = students[name]?.completed || {};
+    for (const key of keys) {
+      const s = students[key] || {};
+      const name = s.displayName || key;
+      const completedMap = s.completed || {};
       const done = Object.keys(completedMap).filter(k => completedMap[k]).length;
       html += `
-        <tr data-student-row="${name}">
+        <tr data-student-row="${key}">
           <td>${name}</td>
           <td>${done} / ${total}</td>
-          <td><button class="btn small" data-open="${name}">Open</button></td>
+          <td><button class="btn small" data-open="${key}">Open</button></td>
         </tr>
       `;
     }
 
     tbody.innerHTML = html;
 
-    // Click delegate for Open buttons
+    // Open handler
     tbody.onclick = (e) => {
       const btn = e.target.closest("[data-open]");
       if (!btn) return;
-      const name = btn.getAttribute("data-open");
-      document.getElementById("studentSearch")?.value = name; // reflect in search box
-      loadAdminStudent(); // open detail panel for that name
+      const key = btn.getAttribute("data-open");
+      const s = students[key];
+      const displayName = s?.displayName || key;
+      // put the display name in the search box for clarity
+      const search = document.getElementById("studentSearch");
+      if (search) search.value = displayName;
+      loadAdminStudent(key);
     };
 
-    // apply any filter currently typed
+    // apply any current filter
     filterRoster();
   } catch (e) {
     console.error(e);
@@ -216,28 +221,30 @@ window.buildRoster = async function () {
   }
 };
 
-// Search filter
+// Search filter (matches displayName or key)
 window.filterRoster = function () {
   const q = toLower(norm(document.getElementById("studentSearch")?.value));
   const rows = document.querySelectorAll("#studentTableBody tr[data-student-row]");
   rows.forEach(row => {
-    const name = toLower(row.getAttribute("data-student-row") || "");
-    row.style.display = !q || name.includes(q) ? "" : "none";
+    const key = row.getAttribute("data-student-row") || "";
+    const nameCell = row.querySelector("td:first-child")?.textContent || "";
+    const hay = `${key} ${toLower(nameCell)}`;
+    row.style.display = !q || hay.includes(q) ? "" : "none";
   });
 };
 
-// Load student detail (verses + checkboxes)
-window.loadAdminStudent = async function () {
-  const input = document.getElementById("studentSearch");
-  const nameRaw = norm(input?.value);
-  if (!nameRaw) return alert("Type or select a student name first.");
-  const nameExact = nameRaw;
-  const nameLower = toLower(nameRaw);
-
+// Load verses for a student (by lowercase key)
+window.loadAdminStudent = async function (keyOrName) {
   const versesEl = document.getElementById("adminVerses");
   const status = document.getElementById("adminStatus");
   if (versesEl) versesEl.innerHTML = "<p>Loading…</p>";
   if (status) status.textContent = "";
+
+  const key = keyOrName
+    ? toLower(keyOrName)
+    : toLower(norm(document.getElementById("studentSearch")?.value));
+
+  if (!key) { if (versesEl) versesEl.innerHTML = "<p>Type a student name first.</p>"; return; }
 
   try {
     const dbRef = ref(db);
@@ -245,12 +252,14 @@ window.loadAdminStudent = async function () {
     if (!scripturesSnap.exists()) { if (versesEl) versesEl.innerHTML = "<p>No scriptures found.</p>"; return; }
     const scriptures = scripturesSnap.val();
 
-    let completedSnap = await get(child(dbRef, `students/${nameExact}/completed`));
-    if (!completedSnap.exists()) completedSnap = await get(child(dbRef, `students/${nameLower}/completed`));
-    const completed = completedSnap.exists() ? completedSnap.val() : {};
+    const studentSnap = await get(child(dbRef, `students/${key}`));
+    if (!studentSnap.exists()) { if (versesEl) versesEl.innerHTML = "<p>Student not found. Create first.</p>"; return; }
+    const student = studentSnap.val();
+    const completed = student.completed || {};
+    const displayName = student.displayName || key;
 
     const refs = Object.keys(scriptures).sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
-    let html = `<h3>Editing: ${nameRaw}</h3>`;
+    let html = `<h3>Editing: ${displayName}</h3>`;
     html += `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:10px; margin-top:10px;">`;
 
     for (const refName of refs) {
@@ -268,12 +277,9 @@ window.loadAdminStudent = async function () {
       `;
     }
     html += `</div>`;
-    if (versesEl) versesEl.innerHTML = html;
-
-    // remember who we're editing
     if (versesEl) {
-      versesEl.dataset.studentExact = nameExact;
-      versesEl.dataset.studentLower = nameLower;
+      versesEl.innerHTML = html;
+      versesEl.dataset.studentKey = key; // remember who we're editing
     }
   } catch (e) {
     console.error(e);
@@ -286,13 +292,12 @@ window.checkAll = function (flag) {
   document.querySelectorAll('#adminVerses input[type="checkbox"]').forEach(cb => { cb.checked = !!flag; });
 };
 
-// Save progress to /students/<name>/completed
+// Save progress to /students/<lowercase-key>/completed
 window.saveAdminProgress = async function () {
   const versesEl = document.getElementById("adminVerses");
   const status = document.getElementById("adminStatus");
-  const nameExact = versesEl?.dataset.studentExact;
-  const nameLower = versesEl?.dataset.studentLower;
-  if (!nameExact) return alert("Open a student first.");
+  const key = versesEl?.dataset.studentKey;
+  if (!key) return alert("Open a student first.");
 
   const completed = {};
   document.querySelectorAll('#adminVerses input[type="checkbox"]').forEach(cb => {
@@ -301,10 +306,13 @@ window.saveAdminProgress = async function () {
   });
 
   try {
-    await set(ref(db, `students/${nameExact}`), { completed });
-    if (status) status.textContent = `Saved progress for ${nameExact}.`;
-    // refresh roster counts
-    await buildRoster();
+    // keep displayName; update completed
+    const nameSnap = await get(child(ref(db), `students/${key}/displayName`));
+    const displayName = nameSnap.exists() ? nameSnap.val() : key;
+
+    await set(ref(db, `students/${key}`), { displayName, completed });
+    if (status) status.textContent = `Saved progress for ${displayName}.`;
+    await buildRoster(); // refresh roster counts
   } catch (e) {
     console.error(e);
     if (status) status.textContent = "Failed to save. Check database rules.";
