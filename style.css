@@ -1,0 +1,101 @@
+/* === Global Styles === */
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #0a1f44; /* navy blue */
+  color: white;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+.container {
+  max-width: 600px;
+  margin: 80px auto;
+  padding: 20px;
+  background-color: #112b5f;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(255, 255, 0, 0.2);
+}
+
+h1, h2, h3 {
+  color: #ffd700; /* yellow */
+}
+
+.subtitle {
+  font-style: italic;
+  color: #dcdcdc;
+  margin-bottom: 20px;
+}
+
+/* Buttons */
+.btn {
+  background-color: #ffd700;
+  color: #0a1f44;
+  padding: 12px 24px;
+  margin: 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.btn:hover {
+  background-color: #ffea3d;
+  transform: translateY(-2px);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid #ffd700;
+  color: #ffd700;
+}
+
+.btn-outline:hover {
+  background: #ffd700;
+  color: #0a1f44;
+}
+
+/* Inputs */
+input {
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  margin: 10px;
+  width: 80%;
+  max-width: 300px;
+}
+
+button {
+  background-color: #ffd700;
+  color: #0a1f44;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background-color: #ffea3d;
+}
+
+/* Scripture list */
+.scripture-list {
+  text-align: left;
+  margin-top: 20px;
+}
+
+.scripture-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0d2566;
+  margin: 5px 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.checkbox {
+  accent-color: #ffd700;
+}
