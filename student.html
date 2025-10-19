@@ -7,16 +7,19 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>Christ Tabernacle of Love</h1>
-    <h2>100 Scripture Challenge</h2>
+  <header style="display:flex; align-items:center; gap:12px; padding:10px;">
+    <a href="index.html" class="btn">← Back to Home</a>
+    <div>
+      <h1>Christ Tabernacle of Love</h1>
+      <h2>100 Scripture Challenge — Student</h2>
+    </div>
   </header>
 
   <main style="max-width: 900px; margin: 0 auto; padding: 16px;">
     <section class="intro" style="margin-bottom: 16px;">
       <p>
-        Welcome to the Christ Tabernacle of Love: Sunday Challenge!
-        Each verse you learn equips you and builds your
+        Welcome to the Christ Tabernacle of Love Scripture Challenge!
+        Each verse you learn brings you closer to God's Word and builds your
         spiritual foundation.
       </p>
     </section>
@@ -38,12 +41,9 @@
       </p>
     </section>
 
-    <!-- Results get injected here by app.js -->
     <div id="scriptureList" aria-live="polite"></div>
   </main>
 
-  <!-- Keep this last so the DOM is ready when app.js runs -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
-
