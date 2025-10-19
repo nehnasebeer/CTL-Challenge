@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Christ Tabernacle of Love</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Christ Tabernacle of Love</h1>
+    <p class="subtitle">"Thy word have I hid in mine heart, that I might not sin against thee." – Psalm 119:11</p>
+
+    <div class="button-group">
+      <a href="student.html" class="btn">Student Portal</a>
+      <a href="admin.html" class="btn btn-outline">Admin Login</a>
+    </div>
+  </div>
+</body>
+</html>
