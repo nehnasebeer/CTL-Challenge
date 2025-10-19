@@ -1,13 +1,13 @@
-// app.js (final)
+// app.js (student + admin with roster)
 
 // Firebase CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
 import { getDatabase, ref, get, child, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-// ---- CHANGE THIS CODE to your secret word if you like
-const ADMIN_CODE = "ctl2025"; // simple code gate (no auth yet)
+// ---- Change your admin code here
+const ADMIN_CODE = "ctl2025";
 
-// Firebase config (yours)
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCkTG00WHDtt5D3HAwsuX377FH6x_2CDuY",
   authDomain: "ctl-challenge-sunday.firebaseapp.com",
@@ -27,14 +27,16 @@ const db = getDatabase(app);
 const norm = (s) => (s || "").trim();
 const toLower = (s) => (s || "").toLowerCase();
 
-// ============================
+// ==================================================
 // STUDENT PAGE (read-only)
-// ============================
+// ==================================================
 window.loadStudent = async function () {
   const inputEl = document.getElementById("studentName");
   const listEl = document.getElementById("scriptureList");
 
-  const raw = norm(inputEl?.value);
+  if (!inputEl || !listEl) return; // not on student page
+
+  const raw = norm(inputEl.value);
   if (!raw) return alert("Please enter your full name.");
 
   listEl.innerHTML = "<p>Loading…</p>";
@@ -50,7 +52,7 @@ window.loadStudent = async function () {
     }
     const scriptures = scripturesSnap.val();
 
-    // Try exact name, then lowercase
+    // Try exact then lowercase student node
     const exactPath = `students/${raw}/completed`;
     const lowerPath = `students/${toLower(raw)}/completed`;
 
@@ -59,7 +61,6 @@ window.loadStudent = async function () {
     if (!completedSnap.exists()) completedSnap = await get(child(dbRef, lowerPath));
     if (completedSnap.exists()) completed = completedSnap.val();
 
-    // Build UI
     const refs = Object.keys(scriptures).sort((a, b) =>
       a.localeCompare(b, undefined, { numeric: true })
     );
@@ -80,7 +81,6 @@ window.loadStudent = async function () {
         </div>
       `;
     }
-
     listEl.innerHTML = html;
   } catch (err) {
     console.error(err);
@@ -88,16 +88,15 @@ window.loadStudent = async function () {
   }
 };
 
-// Enter key nicety (student)
+// Enter key (student)
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("studentName");
   if (input) input.addEventListener("keydown", (e) => { if (e.key === "Enter") window.loadStudent(); });
 });
 
-// ============================
-// ADMIN PAGE (simple write)
-// ============================
-
+// ==================================================
+// ADMIN PAGE (login, roster, detail, save)
+// ==================================================
 function showAdminPanel() {
   const login = document.getElementById("adminLoginSection");
   const panel = document.getElementById("adminPanel");
@@ -109,65 +108,111 @@ window.adminLogin = function () {
   if (code === ADMIN_CODE) {
     sessionStorage.setItem("ctl_admin", "1");
     showAdminPanel();
-    refreshStudentOptions();
+    buildRoster();
   } else {
     alert("Incorrect admin code.");
   }
 };
 
-// Auto-open if already logged this session
+// Auto-open if already logged
 document.addEventListener("DOMContentLoaded", () => {
   if (sessionStorage.getItem("ctl_admin") === "1") {
     showAdminPanel();
-    refreshStudentOptions();
+    buildRoster();
   }
 });
 
-// Populate datalist with student names
-window.refreshStudentOptions = async function () {
-  const list = document.getElementById("studentList");
-  const status = document.getElementById("adminStatus");
-  if (!list) return;
-
-  list.innerHTML = "";
-  status.textContent = "Loading student names…";
-  try {
-    const snap = await get(child(ref(db), "students"));
-    if (!snap.exists()) {
-      status.textContent = "No students yet. Add one below.";
-      return;
-    }
-    const obj = snap.val(); // keys = student names (could be exact or lowercase)
-    Object.keys(obj).sort().forEach(name => {
-      const opt = document.createElement("option");
-      opt.value = name;
-      list.appendChild(opt);
-    });
-    status.textContent = "Names loaded.";
-  } catch (e) {
-    console.error(e);
-    status.textContent = "Could not load student names.";
-  }
-};
-
-// Create student (empty completed map)
+// Create student (empty)
 window.createStudent = async function () {
   const input = document.getElementById("studentSearch");
   const name = norm(input?.value);
   if (!name) return alert("Enter a name first.");
-  const key = name; // keep exact spelling (you can change to toLower(name) if you prefer)
+  const key = name; // keep exact spelling
 
   try {
     await set(ref(db, `students/${key}`), { completed: {} });
     document.getElementById("adminStatus").textContent = `Created student: ${key}`;
-    refreshStudentOptions();
+    input.value = "";
+    buildRoster(); // refresh list
   } catch (e) {
     console.error(e);
     alert("Could not create student.");
   }
 };
 
-// Load scriptures with checkboxes for a chosen student
+// Refresh names button just rebuilds roster
+window.refreshStudentOptions = function () { buildRoster(); };
+
+// --------- Roster (left column) ----------
+async function getScripturesCount() {
+  const snap = await get(child(ref(db), "scriptures"));
+  if (!snap.exists()) return 0;
+  return Object.keys(snap.val()).length;
+}
+
+async function buildRoster() {
+  const rosterEl = document.getElementById("studentRoster");
+  const countEl = document.getElementById("rosterCount");
+  const status = document.getElementById("adminStatus");
+  if (!rosterEl) return;
+
+  rosterEl.innerHTML = "<div class='muted'>Loading roster…</div>";
+  status.textContent = "";
+
+  try {
+    const [studentsSnap, totalCount] = await Promise.all([
+      get(child(ref(db), "students")),
+      getScripturesCount()
+    ]);
+
+    if (!studentsSnap.exists()) {
+      rosterEl.innerHTML = "<div class='muted'>No students yet. Add one above.</div>";
+      countEl.textContent = "0 students";
+      return;
+    }
+
+    const students = studentsSnap.val(); // { name: { completed: {...} } }
+    const names = Object.keys(students).sort((a,b)=> a.localeCompare(b));
+
+    let html = "";
+    for (const name of names) {
+      const completedMap = students[name]?.completed || {};
+      const done = Object.keys(completedMap).filter(k => completedMap[k]).length;
+      html += `
+        <div class="roster-item">
+          <div>
+            <strong>${name}</strong>
+            <div class="muted">${done} / ${totalCount} completed</div>
+          </div>
+          <div>
+            <button class="btn small" data-open-student="${name}">Open</button>
+          </div>
+        </div>
+      `;
+    }
+    rosterEl.innerHTML = html;
+    countEl.textContent = `${names.length} student${names.length===1 ? "" : "s"}`;
+
+    // click handler (event delegation)
+    rosterEl.onclick = (e) => {
+      const btn = e.target.closest("[data-open-student]");
+      if (!btn) return;
+      const name = btn.getAttribute("data-open-student");
+      loadAdminStudentByName(name);
+    };
+  } catch (e) {
+    console.error(e);
+    rosterEl.innerHTML = "<div class='muted' style='color:#b00020'>Failed to load roster.</div>";
+  }
+}
+
+// --------- Detail / verses (right column) ----------
+async function loadAdminStudentByName(nameRaw) {
+  const input = document.getElementById("studentSearch");
+  if (input) input.value = nameRaw; // reflect selection
+  await window.loadAdminStudent();
+}
+
 window.loadAdminStudent = async function () {
   const input = document.getElementById("studentSearch");
   const nameRaw = norm(input?.value);
@@ -192,18 +237,14 @@ window.loadAdminStudent = async function () {
 
     const refs = Object.keys(scriptures).sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
     let html = `<h3>Editing: ${nameRaw}</h3>`;
-    html += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin:8px 0;">
-               <button class="btn" onclick="checkAll(true)">Check All</button>
-               <button class="btn" onclick="checkAll(false)">Uncheck All</button>
-             </div>`;
-    html += `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:10px;">`;
+    html += `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:10px; margin-top:10px;">`;
 
     for (const refName of refs) {
       const v = scriptures[refName];
       const isDone = !!completed[refName];
       const id = `cb_${refName.replace(/[^a-z0-9]/gi, "_")}`;
       html += `
-        <label for="${id}" class="verse" style="text-align:left;">
+        <label for="${id}" class="verse">
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="${id}" data-ref="${refName}" ${isDone ? "checked" : ""}>
             <strong>${refName}</strong>
@@ -239,7 +280,7 @@ window.saveAdminProgress = async function () {
 
   if (!nameExact) return alert("Load a student first.");
 
-  // Build completed map as { "Ref": true } (omit false to keep data small)
+  // Build completed map: only true values (omit false to keep data small)
   const completed = {};
   document.querySelectorAll('#adminVerses input[type="checkbox"]').forEach(cb => {
     const refName = cb.getAttribute("data-ref");
@@ -247,13 +288,10 @@ window.saveAdminProgress = async function () {
   });
 
   try {
-    // Prefer exact name path; if it doesn't exist, fallback to lowercase
-    const exactPath = `students/${nameExact}`;
-    const lowerPath = `students/${nameLower}`;
-
-    // Ensure student node exists
-    await set(ref(db, exactPath), { completed }); // overwrites student node with our completed map
+    await set(ref(db, `students/${nameExact}`), { completed });
     status.textContent = `Saved progress for ${nameExact}.`;
+    // refresh roster counts
+    buildRoster();
   } catch (e) {
     console.error(e);
     status.textContent = "Failed to save. Check database rules.";
