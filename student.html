@@ -8,17 +8,42 @@
 </head>
 <body>
   <header>
-    <h1>Student Access</h1>
+    <h1>Christ Tabernacle of Love</h1>
+    <h2>100 Scripture Challenge</h2>
   </header>
 
-  <section>
-    <h3>Enter Your Full Name:</h3>
-    <input type="text" id="studentName" placeholder="e.g. Sarah Johnson" />
-    <button class="btn" onclick="loadStudent()">View My Scriptures</button>
-  </section>
+  <main style="max-width: 900px; margin: 0 auto; padding: 16px;">
+    <section class="intro" style="margin-bottom: 16px;">
+      <p>
+        Welcome to the Christ Tabernacle of Love: Sunday Challenge!
+        Each verse you learn equips you and builds your
+        spiritual foundation.
+      </p>
+    </section>
 
-  <div id="scriptureList"></div>
+    <section aria-label="Student Lookup" style="margin-bottom: 12px;">
+      <h3>Enter Your Full Name</h3>
+      <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+        <input
+          type="text"
+          id="studentName"
+          placeholder="e.g. Sarah Johnson"
+          aria-label="Full name"
+          style="min-width:260px; padding:10px; border-radius:8px; border:1px solid #ccd4e0;"
+        />
+        <button class="btn" onclick="loadStudent()">View My Scriptures</button>
+      </div>
+      <p style="font-size:0.9rem; color:#666; margin-top:6px;">
+        Tip: Press <kbd>Enter</kbd> after typing your name.
+      </p>
+    </section>
 
+    <!-- Results get injected here by app.js -->
+    <div id="scriptureList" aria-live="polite"></div>
+  </main>
+
+  <!-- Keep this last so the DOM is ready when app.js runs -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
+
