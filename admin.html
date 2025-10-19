@@ -5,6 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin | CTL Scripture Challenge</title>
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* light polish for admin layout */
+    .admin-wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .row { display:flex; gap:16px; align-items:flex-start; }
+    .col { flex:1 1 0; }
+    .card { background:#fff; border:1px solid #e8edf6; border-radius:12px; padding:14px; }
+    .roster-header { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .roster-list { margin-top:10px; }
+    .roster-item {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:10px 12px; border-bottom:1px solid #eef2f7;
+    }
+    .roster-item:last-child { border-bottom:none; }
+    .pill { font-size:12px; padding:4px 8px; border-radius:999px; background:#f1f5ff; }
+    .muted { color:#667085; font-size:.92rem; }
+    .btn.small { padding:6px 10px; font-size:.9rem; }
+    .verse { text-align:left; }
+    @media (max-width: 900px) {
+      .row { flex-direction:column; }
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -12,36 +33,55 @@
     <h2>Admin Dashboard</h2>
   </header>
 
-  <main style="max-width: 980px; margin: 0 auto; padding: 16px;">
+  <main class="admin-wrap">
     <!-- Login -->
-    <section id="adminLoginSection" aria-label="Admin Login" style="margin-bottom:16px;">
+    <section id="adminLoginSection" class="card" aria-label="Admin Login" style="margin-bottom:16px;">
       <h3>Admin Login</h3>
-      <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
-        <input type="password" id="adminCode" placeholder="Enter admin code" style="min-width:260px; padding:10px; border-radius:8px; border:1px solid #ccd4e0;">
+      <div style="display:flex; gap:8px; justify-content:flex-start; flex-wrap:wrap;">
+        <input type="password" id="adminCode" placeholder="Enter admin code"
+               style="min-width:260px; padding:10px; border-radius:8px; border:1px solid #ccd4e0;">
         <button class="btn admin" onclick="adminLogin()">Enter</button>
       </div>
-      <p style="font-size:0.9rem; color:#666; margin-top:6px;">(Simple code—no accounts yet.)</p>
+      <p class="muted" style="margin-top:6px;">Simple code gate for now (no accounts).</p>
     </section>
 
     <!-- Panel -->
     <section id="adminPanel" style="display:none;">
-      <div style="display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap; margin-bottom:12px;">
-        <input id="studentSearch" placeholder="Type or select student name" list="studentList" style="min-width:260px; padding:10px; border-radius:8px; border:1px solid #ccd4e0;">
-        <datalist id="studentList"></datalist>
-        <button class="btn" onclick="loadAdminStudent()">Load Student</button>
-        <button class="btn" onclick="createStudent()">Add New Student</button>
-        <button class="btn" onclick="refreshStudentOptions()">Refresh Names</button>
-      </div>
+      <div class="row">
+        <!-- Left: roster -->
+        <div class="col">
+          <div class="card">
+            <div class="roster-header">
+              <h3 style="margin:0;">Student Roster</h3>
+              <span id="rosterCount" class="pill">0 students</span>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+              <input id="studentSearch" placeholder="Search or type new name"
+                     style="min-width:240px; padding:10px; border-radius:8px; border:1px solid #ccd4e0;">
+              <button class="btn" onclick="createStudent()">Add New Student</button>
+              <button class="btn" onclick="refreshStudentOptions()">Refresh</button>
+            </div>
 
-      <div id="adminStatus" style="margin:8px 0; color:#666;"></div>
+            <div class="muted" style="margin-top:8px;">
+              Click a student to open their progress.
+            </div>
 
-      <div id="adminVerses"></div>
+            <div id="studentRoster" class="roster-list" style="margin-top:8px;">
+              <!-- rows injected here -->
+            </div>
+          </div>
+        </div>
 
-      <div style="margin-top:12px;">
-        <button class="btn admin" onclick="saveAdminProgress()">Save Progress</button>
-      </div>
-    </section>
-  </main>
+        <!-- Right: detail / verses -->
+        <div class="col">
+          <div class="card">
+            <div id="adminStatus" class="muted" style="margin-bottom:8px;"></div>
+            <div id="adminVerses">
+              <p class="muted">Select a student from the list to view and edit progress.</p>
+            </div>
+            <div style="margin-top:12px;">
+              <button class="btn admin" onclick="saveAdminProgress()">Save Progress</button>
+              <button class="btn" onclick="checkAll(true)">Check All</button>
 
   <script type="module" src="app.js"></script>
 </body>
