@@ -1,1 +1,1 @@
-# CTL-Challenge
+# CTL-Sunday-Challenge
