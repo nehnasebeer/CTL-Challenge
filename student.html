@@ -3,17 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Student Portal - CTL</title>
+  <title>Student | CTL Scripture Challenge</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <h2>Student Scripture Tracker</h2>
-    <input type="text" id="studentName" placeholder="Enter your name" />
-    <button onclick="loadStudent()">View Progress</button>
+  <header>
+    <h1>Student Access</h1>
+  </header>
 
-    <div id="scriptureList" class="scripture-list"></div>
-  </div>
+  <section>
+    <h3>Enter Your Full Name:</h3>
+    <input type="text" id="studentName" placeholder="e.g. Sarah Johnson" />
+    <button class="btn" onclick="loadStudent()">View My Scriptures</button>
+  </section>
+
+  <div id="scriptureList"></div>
 
   <script type="module" src="app.js"></script>
 </body>
