@@ -3,24 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CTL Scripture Challenge</title>
+  <title>Admin | CTL Scripture Challenge</title>
   <link rel="stylesheet" href="style.css"/>
   <style>
-    .center { max-width: 720px; margin: 12vh auto; text-align: center; padding: 20px; }
-    .links { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:16px; }
-    .btn { padding:10px 16px; border-radius:10px; border:1px solid #ccd4e0; cursor:pointer; text-decoration:none; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .card { background:#fff; border:1px solid #e8edf6; border-radius:12px; padding:14px; }
+    .muted { color:#667085; font-size:.92rem; }
+    .btn.small { padding:6px 10px; font-size:.9rem; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:10px; border-bottom:1px solid #eef2f7; text-align:left; }
+    th { background:#f8fafc; font-weight:600; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+    .verse { text-align:left; }
   </style>
 </head>
 <body>
-  <div class="center">
-    <h1>Christ Tabernacle of Love</h1>
-    <h2>100 Scripture Challenge</h2>
-    <p>“Let the word of Christ dwell in you richly.” — Colossians 3:16</p>
-    <div class="links">
-      <a class="btn" href="student.html">Student Access</a>
-      <a class="btn" href="admin.html">Admin Dashboard</a>
+  <header style="display:flex; align-items:center; gap:12px; padding:10px;">
+    <a href="index.html" class="btn">← Back to Home</a>
+    <div>
+      <h1>Christ Tabernacle of Love</h1>
+      <h2>Admin Dashboard</h2>
     </div>
-  </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Login -->
+    <section id="adminLoginSection" class="card" aria-label="Admin Login" style="margin-bottom:16px;">
+      <h3>Admin Login</h3>
+      <div class="controls">
+        <input type="password" id="adminCode" placeholder="Enter admin code"
+               style="min-width:260px; padding:10px; border-radius:8px; border:1px solid #ccd4e0;">
+        <button class="btn admin" onclick="adminLogin()">Enter</button>
+      </div>
+      <p class="muted" style="margin-top:6px;">Code required each session.</p>
+    </section>
+
+    <!-- Panel -->
+    <section id="adminPanel" class="card" style="display:none;">
+      <div class="controls" style="justify-content:space-between; align-items:center;">
+        <div>
+          <strong>Welcome, Admin</strong>
+          <span id="totalCount" class="muted" style="margin-left:8px;"></span>
+        </div>
+        <button class="btn small" onclick="adminLogout()">Logout</button>
+      </div>
+
+      <div class="controls">
+        <input id="studentSearch" placeholder="Search students…" oninput="filterRoster()"
+               style="min-width:240px; padding:10px; border-radius:8px; border:1px solid #ccd4e0;">
+        <input id="newStudentName" placeholder="Add new student (full name)"
+               style="min-width:260px; padding:10px; border-radius:8px; border:1px solid #ccd4e0;">
+        <button class="btn" onclick="createStudent()">Add Student</button>
+        <button class="btn" onclick="buildRoster()">Refresh</button>
+      </div>
+
+      <div id="adminStatus" class="muted" style="margin:6px 0;"></div>
+
+      <!-- Roster table -->
+      <div style="overflow:auto; margin-top:8px;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50%;">Student</th>
+              <th style="width:25%;">Progress</th>
+              <th style="width:25%;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody">
+            <!-- rows injected -->
+          </tbody>
+        </table>
+      </div>
+
+      <hr style="margin:16px 0; border:none; border-top:1px solid #eef2f7;">
+
+      <!-- Detail / verses -->
+      <div id="adminVerses">
+        <p class="muted">Click “Open” on a student to view and edit their verses.</p>
+      </div>
+
+      <div class="controls">
+        <button class="btn admin" onclick="saveAdminProgress()">Save Progress</button>
+        <button class="btn" onclick="checkAll(true)">Check All</button>
+        <button class="btn" onclick="checkAll(false)">Uncheck All</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
-
